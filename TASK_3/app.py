@@ -28,10 +28,12 @@ def add_servers():
 
     new_servers = hostnames[:n] if hostnames else [f"server{random.randint(100, 999)}:5000" for _ in range(n)]
     servers.extend(new_servers)
+
     # Update hash ring with new number of servers
     new_hash_ring = ConsistentHashRing(len(servers), HSLOTS, K)
     new_hash_ring._initialize_ring()  # Reinitialize with updated server count
     global hash_ring
+    
     hash_ring = new_hash_ring  # Replace the old ring
     return jsonify({"message": {"N": len(servers), "replicas": servers, "status": "successful"}}), 200
 
@@ -48,23 +50,28 @@ def remove_servers():
     for server in remove_list:
         if server in servers:
             servers.remove(server)
+
     # Update hash ring with new number of servers
     new_hash_ring = ConsistentHashRing(len(servers), HSLOTS, K)
     new_hash_ring._initialize_ring()  # Reinitialize with updated server count
     global hash_ring
     hash_ring = new_hash_ring  # Replace the old ring
+
     return jsonify({"message": {"N": len(servers), "replicas": servers, "status": "successful"}}), 200
 
 @app.route("/<path:path>", methods=["GET"])
 def route_request(path):
     if path != "home":
         return jsonify({"message": f"Error: '{path}' endpoint not supported", "status": "failure"}), 400
+    
     server_id = hash_ring.get_server_for_request(request.remote_addr)
     if not server_id:
         return jsonify({"message": "Error: No available server", "status": "failure"}), 500
+    
     # Convert Server-0 to server1:5000
     server_num = int(server_id.split('-')[1]) + 1  # Server-0 -> 1, Server-1 -> 2, etc.
     server = f"server{server_num}:5000" if server_num <= len(servers) else None
+
     if not server or server not in servers:
         return jsonify({"message": f"Error: Server {server_id} not found", "status": "failure"}), 500
     try:

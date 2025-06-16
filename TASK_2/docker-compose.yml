@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - SERVER_ID=3
+      - SERVER_ID=2
     ports:
       - "5003:5000"
 

@@ -1,6 +1,3 @@
-import math
-import hashlib  
-
 class ConsistentHashRing:
     def __init__(self, num_servers=3, slots=512, virtual_nodes=9):
         self.num_servers = num_servers
@@ -11,13 +8,13 @@ class ConsistentHashRing:
         self._initialize_ring()
 
     def H(self, i):
-        hash_value = hashlib.sha256(str(i).encode()).hexdigest()
-        return int(hash_value, 16) % self.slots
+        hash_value = pow(i, 2) + 2*i + 17
+        return hash_value % self.slots
 
     def Phi(self, i, j):
         key = f"{i}-{j}"
-        h = hashlib.sha256(key.encode()).hexdigest()
-        return int(h, 16) % self.slots
+        hash_value = pow(i, 2) + pow(j, 2) + 2*j + 25
+        return hash_value % self.slots
 
     def _initialize_ring(self):
         for server_id in range(self.num_servers):
