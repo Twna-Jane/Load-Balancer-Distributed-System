@@ -10,9 +10,6 @@ K = 9
 servers = ["server1:5000", "server2:5000", "server3:5000"]
 hash_ring = ConsistentHashRing(N, HSLOTS, K)
 
-# Initialize with actual server base names
-hash_ring._initialize_ring()
-
 @app.route("/rep", methods=["GET"])
 def get_replicas():
     return jsonify({"message": {"N": len(servers), "replicas": servers, "status": "successful"}}), 200
@@ -50,6 +47,12 @@ def remove_servers():
     for server in remove_list:
         if server in servers:
             servers.remove(server)
+            n -= 1
+    
+    # Randomly remove servers if n > 0
+    while n > 0:
+        servers.remove(random.choice(servers))
+        n -= 1
 
     # Update hash ring with new number of servers
     new_hash_ring = ConsistentHashRing(len(servers), HSLOTS, K)
@@ -63,8 +66,10 @@ def remove_servers():
 def route_request(path):
     if path != "home":
         return jsonify({"message": f"Error: '{path}' endpoint not supported", "status": "failure"}), 400
+
+    request_id = random.randint(100000, 999999)
+    server_id = hash_ring.get_server_for_request(request_id)
     
-    server_id = hash_ring.get_server_for_request(request.remote_addr)
     if not server_id:
         return jsonify({"message": "Error: No available server", "status": "failure"}), 500
     
