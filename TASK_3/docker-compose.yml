@@ -1,0 +1,44 @@
+services:
+  load_balancer:
+    image: python:3.9-slim
+    volumes:
+      - ./app.py:/app/app.py
+      - ./consistent_hash.py:/app/consistent_hash.py
+      - ./requirements.txt:/app/requirements.txt
+    working_dir: /app
+    command: bash -c "pip install -r requirements.txt gunicorn && gunicorn --bind 0.0.0.0:5000 app:app --log-level debug"
+    ports:
+      - "5000:5000"
+    networks:
+      - lb_network
+    depends_on:
+      - server1
+      - server2
+      - server3
+  server1:
+    build:
+      context: ../TASK_1
+      dockerfile: Dockerfile
+    environment:
+      - SERVER_ID=server1
+    networks:
+      - lb_network
+  server2:
+    build:
+      context: ../TASK_1
+      dockerfile: Dockerfile
+    environment:
+      - SERVER_ID=server2
+    networks:
+      - lb_network
+  server3:
+    build:
+      context: ../TASK_1
+      dockerfile: Dockerfile
+    environment:
+      - SERVER_ID=server3
+    networks:
+      - lb_network
+networks:
+  lb_network:
+    driver: bridge
