@@ -4,11 +4,10 @@ from consistent_hash import ConsistentHashRing
 import random
 
 app = Flask(__name__)
-N = 3  # Initial number of servers
 HSLOTS = 512
 K = 9
 servers = ["server1:5000", "server2:5000", "server3:5000"]
-hash_ring = ConsistentHashRing(N, HSLOTS, K)
+hash_ring = ConsistentHashRing(servers, HSLOTS, K)
 
 @app.route("/rep", methods=["GET"])
 def get_replicas():
@@ -16,6 +15,7 @@ def get_replicas():
 
 @app.route("/add", methods=["POST"])
 def add_servers():
+    global hash_ring
     data = request.json
     n = data.get("n", 0)
     hostnames = data.get("hostnames", [])
@@ -26,12 +26,8 @@ def add_servers():
     new_servers = hostnames[:n] if hostnames else [f"server{random.randint(100, 999)}:5000" for _ in range(n)]
     servers.extend(new_servers)
 
-    # Update hash ring with new number of servers
-    new_hash_ring = ConsistentHashRing(len(servers), HSLOTS, K)
-    new_hash_ring._initialize_ring()  # Reinitialize with updated server count
-    global hash_ring
-    
-    hash_ring = new_hash_ring  # Replace the old ring
+    # Update hash ring with new servers
+    hash_ring = ConsistentHashRing(servers, HSLOTS, K)
     return jsonify({"message": {"N": len(servers), "replicas": servers, "status": "successful"}}), 200
 
 @app.route("/rm", methods=["DELETE"])
@@ -54,36 +50,50 @@ def remove_servers():
         servers.remove(random.choice(servers))
         n -= 1
 
-    # Update hash ring with new number of servers
-    new_hash_ring = ConsistentHashRing(len(servers), HSLOTS, K)
-    new_hash_ring._initialize_ring()  # Reinitialize with updated server count
+    # Update hash ring with servers
+    new_hash_ring = ConsistentHashRing(servers, HSLOTS, K)
     global hash_ring
     hash_ring = new_hash_ring  # Replace the old ring
 
     return jsonify({"message": {"N": len(servers), "replicas": servers, "status": "successful"}}), 200
 
+
+def is_server_alive(server):
+    """Checks if a server is active by sending a heartbeat to it."""
+    try:
+        res = requests.get(f"http://{server}/heartbeat", timeout=2)
+        return res.status_code == 200
+    except requests.RequestException:
+        return False
+
+
 @app.route("/<path:path>", methods=["GET"])
 def route_request(path):
+    global hash_ring
+
     if path != "home":
         return jsonify({"message": f"Error: '{path}' endpoint not supported", "status": "failure"}), 400
 
-    request_id = random.randint(100000, 999999)
-    server_id = hash_ring.get_server_for_request(request_id)
-    
-    if not server_id:
-        return jsonify({"message": "Error: No available server", "status": "failure"}), 500
-    
-    # Convert Server-0 to server1:5000
-    server_num = int(server_id.split('-')[1]) + 1  # Server-0 -> 1, Server-1 -> 2, etc.
-    server = f"server{server_num}:5000" if server_num <= len(servers) else None
+    routing_attempts = len(servers)
+    for _ in range(routing_attempts):
+        request_id = random.randint(100000, 999999)
+        server = hash_ring.get_server_for_request(request_id)
 
-    if not server or server not in servers:
-        return jsonify({"message": f"Error: Server {server_id} not found", "status": "failure"}), 500
-    try:
-        response = requests.get(f"http://{server}/{path}", timeout=2)
-        return jsonify(response.json()), response.status_code
-    except requests.RequestException:
-        return jsonify({"message": f"Error routing to {server}", "status": "failure"}), 500
+        if server and server in servers:
+            if is_server_alive(server):
+                try:
+                    response = requests.get(f"http://{server}/{path}", timeout=2)
+                    return jsonify(response.json()), response.status_code
+                except requests.RequestException:
+                    continue
+            else:
+                # Remove dead server and rebuild hash ring
+                print(f"Removing dead server: {server}")
+                servers.remove(server)
+                hash_ring = ConsistentHashRing(servers, HSLOTS, K)
+
+    return jsonify({"message": "Error: No healthy server found", "status": "failure"}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
