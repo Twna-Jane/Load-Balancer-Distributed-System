@@ -233,7 +233,7 @@ print(response.status_code, response.json())
 ![Request to home endpoint](postman_tests/request_to_home.png)
 
 #### 5. Request to `/other`
-![Request to other endpoint](postman_tests/request_to_home.png)
+![Request to other endpoint](postman_tests/request_to_other.png)
 
 ## Load Balancer Performance Analysis
 - For more details, refer to **`TASK_4/analysis.ipynb`**.
