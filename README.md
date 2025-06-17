@@ -16,6 +16,8 @@ instance, `TASK_1` contains scripts for Task 1, `TASK_2` has files for Task 2, a
   - [Running Docker Services](#running-docker-services)
   - [Running Python Files](#running-python-files)
 - [Repository Structure](#repository-structure)
+- [Design Choices](#design-choices)
+- [Assumptions](#assumptions)
 - [Testing the Project](#testing-the-project)
   - [Endpoints](#endpoints)
   - [Testing with cURL](#testing-with-curl)
@@ -113,6 +115,22 @@ python app.py
 └── requirements.txt
 
 ```
+
+## Design Choices
+To implement the load balancer, Object-Oriented programming was applied.
+- The hashing mechanism was implemented as a class called `ConsistentHashRing`, which contained attributes such as the
+servers, slots, and virtual nodes to be created, and methods for implementing hashing and server allocation for a request.
+- The servers and load balancer are implemented as Flask web servers, comprising the endpoints required for request 
+handling and load balancing operations.
+
+## Assumptions
+- The following assumptions were made in the load balancer implementation:
+1. Request IDs are generated randomly by the load balancer.
+2. The load balancer is the only point of entry to the internal network - Clients only interact directly with the load 
+balance, which handles request to, and from servers dynamically.
+3. Server failure is detected through heartbeats.
+4. Scaling is done manually via API - Servers are added and removed through the load balancer's APIs, hence no automatic 
+scaling is done.
 
 ## Testing the Project
 Postman, command-line tools like `cURL`, or Python scripts using the `requests` module can be used to perform tests
