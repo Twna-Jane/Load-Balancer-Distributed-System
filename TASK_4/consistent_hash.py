@@ -1,6 +1,7 @@
 class ConsistentHashRing:
-    def __init__(self, num_servers=3, slots=512, virtual_nodes=9):
-        self.num_servers = num_servers
+    """The modified consistent hash ring for analysis no. 4"""
+    def __init__(self, servers=None, slots=512, virtual_nodes=9):
+        self.servers = servers or []
         self.slots = slots
         self.virtual_nodes = virtual_nodes
         self.hash_ring = [None] * slots
@@ -8,16 +9,16 @@ class ConsistentHashRing:
         self._initialize_ring()
 
     def H(self, i):
-        hash_value = pow(i, 2) + 2*i + 17
+        hash_value = 3*i
         return hash_value % self.slots
 
     def Phi(self, i, j):
         key = f"{i}-{j}"
-        hash_value = pow(i, 2) + pow(j, 2) + 2*j + 25
+        hash_value = pow(i, 2) + 4*j
         return hash_value % self.slots
 
     def _initialize_ring(self):
-        for server_id in range(self.num_servers):
+        for server_id, server_address in enumerate(self.servers):
             for replica_id in range(self.virtual_nodes):
                 slot = self.Phi(server_id, replica_id)
                 original_slot = slot
@@ -25,8 +26,8 @@ class ConsistentHashRing:
                     slot = (slot + 1) % self.slots  # Linear probing
                     if slot == original_slot:
                         raise Exception("Hash ring is full.")
-                self.hash_ring[slot] = f"Server-{server_id}"
-                self.server_map[slot] = f"Server-{server_id}"
+                self.hash_ring[slot] = server_address
+                self.server_map[slot] = server_address
 
     def get_server_for_request(self, request_id):
         slot = self.H(request_id)

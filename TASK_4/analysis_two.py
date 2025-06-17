@@ -6,7 +6,7 @@ import aiohttp
 from collections import Counter
 import random
 
-NUM_REQUESTS = 100
+NUM_REQUESTS = 10000
 SERVER_RANGE = range(2, 7)
 AVERAGES = []
 
@@ -19,7 +19,8 @@ async def fetch(ring):
 
 async def run_simulation(num_servers):
     """Creates a hash ring and simulates async requests for a set number of servers."""
-    ring = ConsistentHashRing(num_servers=num_servers, slots=512, virtual_nodes=9)
+    servers = [f"server{i + 1}:5000" for i in range(num_servers)]
+    ring = ConsistentHashRing(servers=servers, slots=512, virtual_nodes=9)
     counter = Counter()
 
     # Count requests per server
