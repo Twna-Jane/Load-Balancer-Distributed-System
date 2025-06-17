@@ -140,33 +140,33 @@ The load balancer exposes the following endpoints:
 - The load balancer is exposed to the public network through the host machine on port 5000.
 
 ### Testing with cURL
-**1. Test Load Balancer Routing**
+#### 1. Test Load Balancer Routing
 
 ```bash
 curl http://localhost:5000/home
 ```
 
-**2. Add a New Server**
+#### 2. Add a New Server
 ```bash
 curl -X POST http://localhost:5000/add \
   -H "Content-Type: application/json" \
   -d '{"n": 1, "hostnames": ["server4:5000"]}'
 ```
 
-**3. Remove a Server**
+#### 3. Remove a Server
 ```bash
 curl -X DELETE http://localhost:5000/rm \
   -H "Content-Type: application/json" \
   -d '{"n": 1, "hostnames": ["server4:5000"]}'
 ```
 
-**4. List Active Servers**
+#### 4. List Active Servers
 ```bash
 curl http://localhost:5000/rep
 ```
 
 ### Testing with Python (using `requests`)
-**1. Test Load Balancer Routing**
+#### 1. Test Load Balancer Routing
 ```python
 import requests
 
@@ -174,7 +174,7 @@ response = requests.get("http://localhost:5000/home")
 print(response.status_code, response.json())
 ```
 
-**2. Add a New Server**
+#### 2. Add a New Server
 ```python
 import requests
 
@@ -183,7 +183,7 @@ response = requests.post("http://localhost:5000/add", json=data)
 print(response.status_code, response.json())
 ```
 
-**3. Remove a Server**
+#### 3. Remove a Server
 ```python
 import requests
 
@@ -192,7 +192,7 @@ response = requests.delete("http://localhost:5000/rm", json=data)
 print(response.status_code, response.json())
 ```
 
-**4. List Active Servers**
+#### 4. List Active Servers
 ```python
 import requests
 
@@ -202,23 +202,23 @@ print(response.status_code, response.json())
 - Examples of testing with Python can be found in the `analysis.ipynb` notebook provided in the TASK_4 directory.
 
 ### Testing with Postman
-**1. Get Replicas**
+#### 1. Get Replicas
 ![Get Replicas](postman_tests/get_replicas.png)
 
-**2. Add Server Instances**
+#### 2. Add Server Instances
 ![Add Server Instances](postman_tests/add_server_instances.png)
 
-**3. Remove Server Instances**
+#### 3. Remove Server Instances
 ![Remove Server Instances](postman_tests/remove_server_instances.png)
 
-**4. Request to `/home`**
+#### 4. Request to `/home`
 ![Request to home endpoint](postman_tests/request_to_home.png)
 
-**5. Request to `/other`**
+#### 5. Request to `/other`
 ![Request to other endpoint](postman_tests/request_to_home.png)
 
 ## Load Balancer Performance Analysis
-- For more details, refer to **TASK_4/analysis.ipynb**
+- For more details, refer to **`TASK_4/analysis.ipynb`**.
 
 ### A-1: Request Count Per Server Instance
 - This experiment involved executing 10,000 async requests on the 3 server containers, with the results being displayed
@@ -232,6 +232,8 @@ of requests. This may be caused by the hash function mapping requests to servers
 that direct requests to server1. This represents an imbalance in the number of requests handled across the 3 servers, 
 as server1 handles a large number of requests, leaving the rest of the servers under-utilised.
 
+---
+
 ### A-2: Average Load of Servers for N = 2 to 6
 - This experiment involved iteratively increasing the number of servers from 2 to 6 while launching async requests.
 - The results are plotted on a line chart.
@@ -242,6 +244,8 @@ From the line chart, the average number of requests being handled per server is 
 servers being handled by the load balancer. This behaviour is expected because more servers means fewer requests routed 
 to a specific server, showing a case of horizontal scaling.
 
+---
+
 ### A-3: Failure Detection and Handling
 - This experiment analysed how the load balancer handles server failures.
 - Server 1 was stopped to represent a server failure.
@@ -250,6 +254,8 @@ to a specific server, showing a case of horizontal scaling.
 From the experiment, it was noted that majority of the requests were routed to server 2 compared to server 3, showing a 
 significant imbalance which still existed based on the setup, despite the removal of server 1 (Refer to the notebook for 
 more information).
+
+---
 
 ### A-4: Modifying the Hash Functions
 - The hash ring functions were modified and results gathered, based on the change.
