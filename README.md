@@ -245,10 +245,10 @@ in a bar chart.
 ![Request Count Per Server Instance](TASK_4/figures/analysis_one.png)
 
 #### Observations
-From the graph, most of the requests (more than 90%) are handled by server1, with the rest handling a fairly even number
-of requests. This may be caused by the hash function mapping requests to servers, which may be returning hash values 
-that direct requests to server1. This represents an imbalance in the number of requests handled across the 3 servers, 
-as server1 handles a large number of requests, leaving the rest of the servers under-utilised.
+From the graph, most of the requests are handled by server2, followed by server1 and lastly server3.
+Although quadratic probing improves clustering issues compared to linear probing, the distribution 
+is still somewhat imbalanced, suggesting that the placement of virtual nodes is not entirely uniform
+across the ring.
 
 ---
 
@@ -281,10 +281,6 @@ more information).
   - Request Hash Function: $\quad H(i) = (3 \cdot i) \mod S$
   - Server Hash Function: $\quad \phi(i, j) = (i^2 + 4 \cdot j) \mod S$
 
-Based on the results gathered, server 1 handled significantly more request traffic than before, based on these new 
-functions. There was no significant change noted for the average load per server, when the number of servers were 
-increased, with the number of requests held constant.
-
-
-
-
+Based on the results gathered, server 3 now handled more request traffic than the other servers, 
+based on these new functions. Request distribution is still similar as it was before,with the only 
+difference being the server handling the most requests.
