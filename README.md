@@ -1,12 +1,6 @@
 # Load-Balancer-Distributed-System
 ## Project Overview
-This project involves implementing a load balancer that asynchronously routes requests between servers.
-- In this repository, the tasks handled are divided into folders, corresponding to the task handled. For
-instance, `TASK_1` contains scripts for Task 1, `TASK_2` has files for Task 2, and so on.
-- The code for the servers can be found in `TASK_1/server.py`, and the final load balancer source code is located in 
-`TASK_3/app.py`
-- A detailed analysis on the load balancer's performance is outlined on this README as well as in 
-`TASK_4/analysis.ipynb`.
+This project involves implementing a load balancer that asynchronously routes requests between backend servers using a consistent hashing mechanism. The load balancer acts as the single entry point for client requests, distributing them efficiently across multiple Flask-based server instances. It monitors server health via heartbeats and supports dynamic scaling by allowing servers to be added or removed through API endpoints. The entire system is containerized using Docker and orchestrated with Docker Compose, enabling easy setup, deployment, and management of all components in isolated environments.
 
 ## Table of Contents
 - [Installation and Setup](#installation-and-setup)
@@ -23,6 +17,7 @@ instance, `TASK_1` contains scripts for Task 1, `TASK_2` has files for Task 2, a
   - [Testing with cURL](#testing-with-curl)
   - [Testing with Python](#testing-with-python-using-requests)
   - [Testing with Postman](#testing-with-postman)
+  - [Running Tests with the Makefile](#running-tests-with-the-makefile)
 - [Load Balancer Performance Analysis](#load-balancer-performance-analysis)
   - [A-1: Requests Count Per Server Instance](#a-1-request-count-per-server-instance)
   - [A-2: Average Load of Servers for N=2 to 6](#a-2-average-load-of-servers-for-n--2-to-6)
@@ -63,19 +58,29 @@ pip install -r requirements.txt
 
 ## Basic Usage
 ### Running Docker Services
-- Build images and start the services:
+- Build all images:
 ```bash
-docker-compose up -d
+make build
 ```
 
-- Verify that the containers are running:
+- Start all the containers:
 ```bash
-docker-compose ps
+make up
+```
+
+- Verify that the containers are running by checking the logs:
+```bash
+make logs
 ```
 
 - When you're done, you can stop and remove containers:
 ```bash
-docker-compose down
+make down
+```
+
+- You can choose to perform clean-up as well:
+```bash
+make clean
 ```
 
 ### Running Python Files
@@ -83,37 +88,41 @@ docker-compose down
 ```bash
 python app.py
 ```
+- This is not be required if you choose to run the Docker containers.
 
 ## Repository Structure
 ```bash
+.
 ├── .gitignore
+├── Makefile
 ├── README.md
-├── TASK_1
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── server.py
-├── TASK_2
-│   ├── Dockerfile
-│   ├── consistent_hash.py
-│   ├── docker-compose.yml
-│   ├── loadbalancer.py
-│   └── requirements.txt
-├── TASK_3
-│   ├── Dockerfile
-│   ├── app.py
-│   ├── consistent_hash.py
-│   ├── docker-compose.yml
-│   └── requirements.txt
-├── TASK_4
-│   ├── analysis.ipynb
-│   ├── analysis_one.py
-│   ├── analysis_two.py
-│   ├── consistent_hash.py
-│   └── figures
-│       ├── analysis_one.png
-│       └── analysis_two.png
-└── requirements.txt
-
+├── analysis
+│   ├── analysis.ipynb
+│   ├── analysis_one.py
+│   ├── analysis_two.py
+│   └── figures
+│       ├── analysis_one.png
+│       └── analysis_two.png
+├── docker-compose.yml
+├── load_balancer
+│   ├── Dockerfile
+│   ├── __init__.py
+│   ├── app.py
+│   ├── consistent_hash.py
+│   ├── docker_utils.py
+│   └── requirements.txt
+├── postman_tests
+│   ├── add_server_instances.png
+│   ├── get_replicas.png
+│   ├── remove_server_instances.png
+│   ├── request_to_home.png
+│   └── request_to_other.png
+├── requirements.txt
+└── server
+    ├── Dockerfile
+    ├── __init__.py
+    ├── requirements.txt
+    └── server.p
 ```
 
 ## Design Choices
@@ -168,14 +177,14 @@ curl http://localhost:5000/home
 ```bash
 curl -X POST http://localhost:5000/add \
   -H "Content-Type: application/json" \
-  -d '{"n": 1, "hostnames": ["server4:5000"]}'
+  -d '{"n": 1, "hostnames": ["server4"]}'
 ```
 
 #### 3. Remove a Server
 ```bash
 curl -X DELETE http://localhost:5000/rm \
   -H "Content-Type: application/json" \
-  -d '{"n": 1, "hostnames": ["server4:5000"]}'
+  -d '{"n": 1, "hostnames": ["server4"]}'
 ```
 
 #### 4. List Active Servers
@@ -217,7 +226,13 @@ import requests
 response = requests.get("http://localhost:5000/rep")
 print(response.status_code, response.json())
 ```
-- Examples of testing with Python can be found in the `analysis.ipynb` notebook provided in the TASK_4 directory.
+- Other examples of testing with Python can be found in `analysis/analysis.ipynb`.
+
+### Running Tests with the Makefile
+- To run tests with the `Makefile`:
+```bash
+make test
+```
 
 ### Testing with Postman
 #### 1. Get Replicas
@@ -236,13 +251,13 @@ print(response.status_code, response.json())
 ![Request to other endpoint](postman_tests/request_to_other.png)
 
 ## Load Balancer Performance Analysis
-- For more details, refer to **`TASK_4/analysis.ipynb`**.
+- For more details, refer to **`analysis/analysis.ipynb`**.
 
 ### A-1: Request Count Per Server Instance
 - This experiment involved executing 10,000 async requests on the 3 server containers, with the results being displayed
 in a bar chart.
 - Asynchronous requests are launched by using `aiohttp` + `asyncio` for concurrent request handling.
-![Request Count Per Server Instance](TASK_4/figures/analysis_one.png)
+![Request Count Per Server Instance](analysis/figures/analysis_one.png)
 
 #### Observations
 From the graph, most of the requests are handled by server2, followed by server1 and lastly server3.
@@ -255,7 +270,7 @@ across the ring.
 ### A-2: Average Load of Servers for N = 2 to 6
 - This experiment involved iteratively increasing the number of servers from 2 to 6 while launching async requests.
 - The results are plotted on a line chart.
-![Average Load of Servers](TASK_4/figures/analysis_two.png)
+![Average Load of Servers](analysis/figures/analysis_two.png)
 
 #### Observations
 From the line chart, the average number of requests being handled per server is inversely proportional to the number of 
@@ -278,9 +293,9 @@ more information).
 ### A-4: Modifying the Hash Functions
 - The hash ring functions were modified and results gathered, based on the change.
 - These were the new hash functions (defined arbitrarily) for the requests and servers that were used:
-  - Request Hash Function: $\quad H(i) = (3 \cdot i) \mod S$
+  - Request Hash Function: $\quad H(i) = (3 \cdot i^2 + 5) \mod S$
   - Server Hash Function: $\quad \phi(i, j) = (i^2 + 4 \cdot j) \mod S$
 
-Based on the results gathered, server 3 now handled more request traffic than the other servers, 
-based on these new functions. Request distribution is still similar as it was before,with the only 
+Based on the results gathered, server 1 now handled more request traffic than the other servers, 
+based on these new functions. Request distribution is still similar as it was before, with the only 
 difference being the server handling the most requests.
